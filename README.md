@@ -39,6 +39,52 @@ space is a decent enough way to save some work.
 * **`tools/diagnostics/IDO_REMARKS.md`** contains the agent workflow prompt.
 * **`tools/diagnostics/DECISION_FRONTIERS.md`** contains a prompt to help agents understand what to do with the remarks.
 
+## Example
+
+Compile one function with the instrumented compiler (`-h` points at the runtime you built, `-to`
+selects the instrumented `uopt`), asking for text remarks about `sum_pairs`:
+
+E.g.
+
+```c
+int sum_pairs(int *a, int n, int k) {
+    int i, s = 0;
+    for (i = 0; i < n; i++) {
+        s += a[i] * k + a[i + 1];
+    }
+    return s;
+}
+```
+
+```sh
+IDO_REMARKS=text IDO_REMARKS_FUNCTION=sum_pairs \
+  cc -c -O2 -mips2 -32 -G0 -to -h$RUNTIME/ -B -o ex.o ex.c
+```
+
+The instrumented compiler will produce remarks to stderr when passes do
+interesting things, Clang-style. E.g.:
+
+```
+sum_pairs: AllocationBenefit (procedure #1, event 213): range=0 expression={944|0} type=3 color=0 benefit-status=1 savings-f32=0x41cc0000 interferences=13 colors-left=18 [-Rpass-analysis=ido-regalloc]
+sum_pairs: AllocationBenefit (procedure #1, event 312): range=13 expression={343|0} type=4 color=0 benefit-status=1 savings-f32=0x42500000 interferences=13 colors-left=18 [-Rpass-analysis=ido-regalloc]
+sum_pairs: SpillSlot (procedure #1, event 147): expression={343|0} slot=0 M-offset=-16 size=4 [-Rpass-analysis=ido-regalloc]
+sum_pairs: LocalReuse (procedure #1, event 13): expression={9066|0} block=2 ucode_opcode=65 count_before=1 count_after=2 [-Rpass-analysis=ido-cse]
+```
+
+In this case, `AllocationBenefit` is the register allocator weighing a live range:
+
+* `savings-f32` - benefit as float bits
+* `interferences` - how many other ranges overlap it
+* `colors-left` - how many registers it could still take
+
+`SpillSlot` says which value got a stack slot.
+
+`LocalReuse` is the optimizer reusing an existing expression.
+
+Setting `IDO_REMARKS=json` gives the same events as JSON, which `tools/explain_*.py` turn into reports.
+
+See [`tools/diagnostics/IDO_REMARKS.md`](tools/diagnostics/IDO_REMARKS.md) for the full workflow.
+
 ## Bring Your Own Compiler
 
 No compiler binary or recompiled source is included. (see [NOTICE.md](NOTICE.md)).
