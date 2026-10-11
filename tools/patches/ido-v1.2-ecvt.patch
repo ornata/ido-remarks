@@ -1,0 +1,35 @@
+diff --git a/libc_impl.c b/libc_impl.c
+index a13307d..d802b02 100644
+--- a/libc_impl.c
++++ b/libc_impl.c
+@@ -1134,3 +1134,29 @@ int wrapper_umask(int mode) {
+ uint32_t wrapper_ecvt(uint8_t* mem, double number, int ndigits, uint32_t decpt_addr, uint32_t sign_addr) {
+-    assert(0);
++    // ecvt returns host-owned static storage. Copy it into persistent guest
++    // storage immediately; callers retain a guest pointer until the next call.
++    // Delegate decimal rounding, sign (including -0), and special values to
++    // the host libc implementation rather than synthesizing diagnostic digits.
++    static uint32_t guest_buffer = 0;
++    int decpt = 0;
++    int sign = 0;
++    const char* digits = ecvt(number, ndigits, &decpt, &sign);
++    if (digits == NULL) {
++        MEM_U32(ERRNO_ADDR) = errno;
++        return 0;
++    }
++    size_t length = strlen(digits) + 1;
++    if (length > UINT32_MAX) {
++        MEM_U32(ERRNO_ADDR) = ENOMEM;
++        return 0;
++    }
++    uint32_t replacement = wrapper_realloc(mem, guest_buffer, (uint32_t)length);
++    if (replacement == 0) {
++        MEM_U32(ERRNO_ADDR) = ENOMEM;
++        return 0;
++    }
++    guest_buffer = replacement;
++    memcpy_str2mem(mem, guest_buffer, digits, length);
++    MEM_U32(decpt_addr) = decpt;
++    MEM_U32(sign_addr) = sign;
++    return guest_buffer;
+ }

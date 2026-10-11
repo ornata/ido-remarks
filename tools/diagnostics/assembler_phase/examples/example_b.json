@@ -1,0 +1,12 @@
+[
+  {
+    "name": "clear member 4",
+    "retained": "^\\s*sw\\s+\\$0, 4\\(\\$16\\)$",
+    "final": "^sw\\s+zero,4\\(s0\\)$"
+  },
+  {
+    "name": "restore ra",
+    "retained": "^\\s*lw\\s+\\$31, 36\\(\\$sp\\)$",
+    "final": "^lw\\s+ra,36\\(sp\\)$"
+  }
+]

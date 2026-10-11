@@ -1,0 +1,7 @@
+# Never commit compiler binaries, recompiled compiler sources, or objects built from them.
+ido-*/
+build/
+*.o
+*.G
+*.T
+__pycache__/

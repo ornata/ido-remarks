@@ -1,0 +1,1 @@
+[{"name": "a0 slot", "retained": "^\\s*addu\\s+\\$4, \\$2, 1120$", "final": "^addiu\\s+a0,v0,1120$"}, {"name": "a2 style", "retained": "^\\s*addu\\s+\\$6, \\$8, \\$9$", "final": "^addu\\s+a2,t0,t1$"}]
